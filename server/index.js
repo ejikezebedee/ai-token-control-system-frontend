@@ -8,6 +8,7 @@ const rootDir = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const dataDir = join(rootDir, "server", "data");
 const distDir = join(rootDir, "dist");
 const port = Number(process.env.PORT || 8787);
+const host = process.env.HOST || "127.0.0.1";
 const maxBodyBytes = Number(process.env.MAX_REQUEST_BYTES || 250_000);
 
 const pricingPresets = [
@@ -258,6 +259,16 @@ function sanitizeRun(result) {
 
 async function handleApi(req, res, id, url) {
   try {
+    if (req.method === "GET" && url.pathname === "/api/health") {
+      return json(res, 200, {
+        data: {
+          status: "ok",
+          service: "ai-token-control-system",
+          timestamp: new Date().toISOString()
+        }
+      }, id);
+    }
+
     if (req.method === "POST" && url.pathname === "/api/analysis") {
       const body = await readBody(req);
       return json(res, 200, { data: analyze(body) }, id);
@@ -357,6 +368,6 @@ const server = createServer(async (req, res) => {
   return serveStatic(req, res, id, url);
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`AI Token Control backend listening on http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`AI Token Control backend listening on http://${host}:${port}`);
 });

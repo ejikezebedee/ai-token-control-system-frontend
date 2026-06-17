@@ -42,11 +42,39 @@ Open:
 http://127.0.0.1:8787/
 ```
 
+Health check:
+
+```text
+GET /api/health
+```
+
 ## Verify
 
 ```bash
 npm run typecheck
 npm run build
+```
+
+## Deploy
+
+Use the production environment template:
+
+```bash
+cp .env.production.example .env
+```
+
+Set `HOST=0.0.0.0` for hosted deployment, set `APP_BASE_URL` to the public URL, then run:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+Full deployment and release checklist:
+
+```text
+docs/deployment/PRODUCTION_DEPLOYMENT.md
 ```
 
 ## Backend Handoff
@@ -76,6 +104,7 @@ GET  /api/settings/model-pricing
 GET  /api/settings/defaults
 PUT  /api/settings/defaults
 POST /api/donations/session
+GET  /api/health
 ```
 
 Main client functions:
@@ -105,6 +134,9 @@ STRIPE_DONATION_LINK=
 PAYPAL_ME_URL=
 DATABASE_URL=
 APP_BASE_URL=
+HOST=
+PORT=
+MAX_REQUEST_BYTES=
 ```
 
 Frontend-safe values:
