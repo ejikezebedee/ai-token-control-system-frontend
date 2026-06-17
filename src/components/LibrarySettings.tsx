@@ -1,7 +1,7 @@
 import { Moon, Search, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
-import { pricingPresets } from "../services/mockAiTokenControl";
-import type { SavedRun } from "../types/contracts";
+import { pricingPresets as fallbackPricing } from "../services/aiTokenControlApi";
+import type { ModelPricing, SavedRun } from "../types/contracts";
 import { Badge, Button, Panel } from "./ui";
 
 export function SavedRunsTable({ savedRuns }: { savedRuns: SavedRun[] }) {
@@ -59,7 +59,9 @@ export function SavedRunsTable({ savedRuns }: { savedRuns: SavedRun[] }) {
   );
 }
 
-export function SettingsPanel({ dark, onThemeToggle }: { dark: boolean; onThemeToggle: () => void }) {
+export function SettingsPanel({ dark, onThemeToggle, pricing }: { dark: boolean; onThemeToggle: () => void; pricing: ModelPricing[] }) {
+  const modelPricing = pricing.length ? pricing : fallbackPricing;
+
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_420px]">
       <Panel className="p-4">
@@ -73,7 +75,7 @@ export function SettingsPanel({ dark, onThemeToggle }: { dark: boolean; onThemeT
               <tr><th className="py-3">Provider</th><th>Preset</th><th>Input / 1M</th><th>Output / 1M</th><th>Status</th></tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {pricingPresets.map((preset) => (
+              {modelPricing.map((preset) => (
                 <tr key={preset.id}>
                   <td className="py-3 font-semibold text-white">{preset.provider}</td>
                   <td>{preset.modelName}</td>
@@ -105,7 +107,7 @@ export function SettingsPanel({ dark, onThemeToggle }: { dark: boolean; onThemeT
             {dark ? "Dark theme active" : "Light theme active"}
           </Button>
           <div className="rounded-lg border border-wheat-400/20 bg-wheat-400/10 p-3 text-sm text-wheat-400">
-            Settings are local UI state only. No account, database, or backend persistence is included.
+            Defaults are ready for backend persistence through the settings API. Theme can remain local until user accounts are added.
           </div>
         </div>
       </Panel>

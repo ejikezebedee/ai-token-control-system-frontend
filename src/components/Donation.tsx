@@ -1,10 +1,11 @@
 import { CheckCircle2, CreditCard, ExternalLink, HeartHandshake, ShieldCheck, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
+import { createDonationSession } from "../services/aiTokenControlApi";
 import { Button, Panel } from "./ui";
 
 const donationLinks = {
-  paypalMe: "https://paypal.me/AITokenControl",
-  stripe: "https://donate.stripe.com/"
+  paypalMe: import.meta.env.VITE_PAYPAL_ME_URL || "",
+  stripe: import.meta.env.VITE_STRIPE_DONATION_LINK || ""
 };
 
 const presetAmounts = [5, 10, 25, 50, 100];
@@ -21,6 +22,7 @@ export function DonationPanel() {
   const [selectedAmount, setSelectedAmount] = useState(25);
   const [customAmount, setCustomAmount] = useState("");
   const [method, setMethod] = useState<"paypal" | "stripe" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const customValue = Number(customAmount);
   const activeAmount = customAmount.trim() ? customValue : selectedAmount;
@@ -28,15 +30,26 @@ export function DonationPanel() {
   const displayAmount = validAmount ? formatCurrency(activeAmount) : "$0";
 
   const paypalUrl = useMemo(() => {
-    if (!validAmount) return donationLinks.paypalMe;
+    if (!validAmount || !donationLinks.paypalMe) return donationLinks.paypalMe;
     return `${donationLinks.paypalMe}/${activeAmount.toFixed(activeAmount % 1 === 0 ? 0 : 2)}`;
   }, [activeAmount, validAmount]);
 
-  const handleDonate = (target: "paypal" | "stripe") => {
+  const handleDonate = async (target: "paypal" | "stripe") => {
     if (!validAmount) return;
     setMethod(target);
-    const targetUrl = target === "paypal" ? paypalUrl : donationLinks.stripe;
-    window.open(targetUrl, "_blank", "noreferrer");
+    setError(null);
+    try {
+      const targetUrl = target === "paypal"
+        ? paypalUrl
+        : donationLinks.stripe || (await createDonationSession(activeAmount, "stripe")).url;
+      if (!targetUrl) {
+        setError(`${target === "paypal" ? "PayPal.me" : "Stripe"} donation link is not configured.`);
+        return;
+      }
+      window.open(targetUrl, "_blank", "noreferrer");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Donation provider is not configured.");
+    }
   };
 
   return (
@@ -153,6 +166,11 @@ export function DonationPanel() {
             </div>
           </div>
         ) : null}
+        {error ? (
+          <div className="mt-5 rounded-2xl border border-wheat-400/30 bg-wheat-400/10 p-4 text-sm font-semibold text-wheat-400">
+            {error}
+          </div>
+        ) : null}
       </Panel>
 
       <Panel className="p-5">
@@ -164,7 +182,7 @@ export function DonationPanel() {
           <li className="rounded-lg border border-white/10 bg-graphite-950/35 p-3">No card fields are collected inside this frontend.</li>
           <li className="rounded-lg border border-white/10 bg-graphite-950/35 p-3">No payment provider SDK is bundled here.</li>
           <li className="rounded-lg border border-white/10 bg-graphite-950/35 p-3">Only PayPal.me and Stripe donation actions are presented.</li>
-          <li className="rounded-lg border border-wheat-400/20 bg-wheat-400/10 p-3 text-wheat-400">Replace the placeholder PayPal.me handle and Stripe donation URL before launch.</li>
+          <li className="rounded-lg border border-wheat-400/20 bg-wheat-400/10 p-3 text-wheat-400">Configure PayPal.me or a hosted Stripe checkout link before launch.</li>
         </ul>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button icon={ExternalLink} onClick={() => handleDonate("paypal")} disabled={!validAmount}>PayPal.me</Button>

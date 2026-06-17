@@ -5,8 +5,8 @@ import { Dashboard } from "./components/Dashboard";
 import { DonationPanel } from "./components/Donation";
 import { SavedRunsTable, SettingsPanel } from "./components/LibrarySettings";
 import { Badge, EmptyState, LoadingState, Panel } from "./components/ui";
-import { analyzeInput, getSavedRuns } from "./services/mockAiTokenControl";
-import type { AnalysisRequest, AnalysisResult, CompressionStrength, SavedRun, ViewId } from "./types/contracts";
+import { analyzeInput, getModelPricing, getSavedRuns, saveRun } from "./services/aiTokenControlApi";
+import type { AnalysisRequest, AnalysisResult, CompressionStrength, ModelPricing, SavedRun, ViewId } from "./types/contracts";
 
 const starterInput = `Project: customer onboarding assistant
 
@@ -46,6 +46,7 @@ export function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [dark, setDark] = useState(true);
   const [savedRuns, setSavedRuns] = useState<SavedRun[]>([]);
+  const [pricing, setPricing] = useState<ModelPricing[]>([]);
   const [result, setResult] = useState<AnalysisResult | undefined>();
   const [strength, setStrength] = useState<CompressionStrength>("Balanced");
   const [request, setRequest] = useState<AnalysisRequest>({
@@ -58,6 +59,7 @@ export function App() {
 
   useEffect(() => {
     getSavedRuns().then(setSavedRuns);
+    getModelPricing().then(setPricing);
   }, []);
 
   useEffect(() => {
@@ -77,7 +79,12 @@ export function App() {
     try {
       const next = await analyzeInput(request);
       setResult(next);
-      setToast("Analysis complete. Mock result is ready for backend wiring.");
+      saveRun(next)
+        .then((saved) => setSavedRuns((runs) => [saved, ...runs.filter((run) => run.id !== saved.id)]))
+        .catch(() => undefined);
+      setToast("Analysis complete. Backend data is ready.");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Analysis failed.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +133,7 @@ export function App() {
     if (activeView === "planner") return <ExecutionPlan result={result} />;
     if (activeView === "library") return <SavedRunsTable savedRuns={savedRuns} />;
     if (activeView === "donation") return <DonationPanel />;
-    if (activeView === "settings") return <SettingsPanel dark={dark} onThemeToggle={() => setDark((value) => !value)} />;
+    if (activeView === "settings") return <SettingsPanel dark={dark} onThemeToggle={() => setDark((value) => !value)} pricing={pricing} />;
 
     return (
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_420px]">

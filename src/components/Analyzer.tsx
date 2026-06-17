@@ -105,11 +105,11 @@ export function AnalyzerEditor({
           value={request.input}
           onChange={(event) => onChange({ ...request, input: event.target.value })}
           className="scrollbar-thin min-h-[340px] w-full resize-y rounded-lg border border-white/10 bg-graphite-950/70 p-4 font-mono text-sm leading-6 text-slate-200 placeholder:text-slate-600"
-          placeholder="Paste context here. This frontend estimates waste locally with mock logic and does not call an AI model."
+          placeholder="Paste context here. The backend estimates waste, compression, relevance, and execution planning without exposing provider keys in the browser."
         />
       </label>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">Frontend-only mock analysis. No API keys, auth, payments, or model calls.</p>
+        <p className="text-xs text-slate-500">Backend-backed analysis with client fallback. API keys and model calls stay server-side.</p>
         <div className="flex gap-2">
           <Button variant="secondary" icon={Save}>Save draft</Button>
           <Button icon={Play} onClick={onAnalyze} disabled={loading}>{loading ? "Analyzing" : "Analyze"}</Button>
@@ -260,8 +260,20 @@ export function CompressionPanel({
             {result.compression.warnings.map((item) => <li key={item} className="rounded-lg bg-wheat-400/10 px-3 py-2 text-wheat-400">{item}</li>)}
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button icon={Copy} onClick={() => onToast("Optimized prompt copied to clipboard mock state")}>Copy optimized prompt</Button>
-            <Button variant="secondary" icon={FileDown} onClick={() => onToast("Export prepared in frontend mock state")}>Export result</Button>
+            <Button icon={Copy} onClick={() => {
+              void navigator.clipboard.writeText(result.optimizedPrompt);
+              onToast("Optimized prompt copied.");
+            }}>Copy optimized prompt</Button>
+            <Button variant="secondary" icon={FileDown} onClick={() => {
+              const blob = new Blob([JSON.stringify(result.compression, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const anchor = document.createElement("a");
+              anchor.href = url;
+              anchor.download = `token-control-compression-${result.id}.json`;
+              anchor.click();
+              URL.revokeObjectURL(url);
+              onToast("Compression result exported.");
+            }}>Export result</Button>
           </div>
         </Panel>
       </div>
